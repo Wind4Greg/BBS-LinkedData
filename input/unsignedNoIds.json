@@ -1,0 +1,32 @@
+{
+    "@context": [
+        "https://www.w3.org/ns/credentials/v2",
+        {
+            "firstName": "http://schema.org/firstName"
+        },
+        {
+            "email": "http://schema.org/email"
+        },
+        {
+            "jobTitle": "http://schema.org/jobTitle"
+        },
+        {
+            "lastName": "http://schema.org/lastName"
+        },
+        {
+            "telephone": "http://schema.org/telephone"
+        }
+    ],
+    "type": "VerifiableCredential",
+    "name": "Multi item credential",
+    "description": "A small multi item example for selective disclosure",
+    "issuer": "https://vc.example/issuers/5678",
+    "validFrom": "2023-01-01T00:00:00Z",
+    "credentialSubject": {
+        "firstName": "Jane",
+        "lastName": "Does",
+        "jobTitle": "Professor",
+        "email": "jane.doe@example.com",
+        "telephone": "(425) 123-4567"
+    }
+}

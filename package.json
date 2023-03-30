@@ -1,0 +1,19 @@
+{
+  "name": "bbs-linkeddata",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@grottonetworking/bbs-signatures": "^0.1.1",
+    "@noble/hashes": "^1.2.0",
+    "jsonld": "^8.1.0",
+    "multiformats": "^11.0.2",
+    "varint": "^6.0.0"
+  }
+}
