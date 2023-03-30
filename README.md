@@ -3,6 +3,8 @@
 
 In this repository we develop code to demonstrate the key steps in applying the BBS signature suite to verifiable credentials. We fill in the gaps in the specification with the most reasonable or straight forward approach and provide justification here.
 
+**Issue**: Since BBS is built with 3 party model should we associate "BBS signature" with the original issuing of the *verifiable credential* and "BBS proofs" (which are derived from the signature) with a *verifiable presentation*? Otherwise we need a way to indicate in the *cryptosuite* whether we are dealing with a *BBS signature* or *BBS proof*. Another way of handling this is some type of multiformat for the `proofValue` field.
+
 ## References
 
 * [W3C: BBS+ Signatures 2020 Draft Community Group Report](https://w3c-ccg.github.io/vc-di-bbs/)
@@ -52,7 +54,7 @@ Note that they also say:
 
 However this doesn't make sense since in all previous cases the VC *proof config/options* has been kept separate from the content as is *required*. Part of the problem is the current CCG draft does not address this. However the IETF BBS signature draft has a very good mechanism for dealing with "associated data" via its `header` parameter.
 
-**Issue**: Need to make it easy for issuer to specify the `requiredRevealStatements`. We can use the "Framing" procedure, see [FrameCheck.js](FrameCheck.js) to get the indices the issuer wants to require to be revealed.
+**Issue**: Need to make it easy for issuer to specify the `requiredRevealStatements`. Can we use the "Framing" procedure, see [FrameCheck.js](FrameCheck.js) to get the indices the issuer wants to require to be revealed? Trying this... Should more constraints be put on this field? Sorted, no out of bound indices?
 
 ## Signing Algorithm
 
@@ -87,17 +89,40 @@ VC Data Integrity says: "Let *hashData* be the result of hashing the *transforme
 
 In the VC approaches for EdDSA they have a procedure to create [proof configuration](https://w3c.github.io/vc-di-eddsa/#proof-configuration-eddsa-2022), which basically includes everything that would go into the VC `proof` field except the `proofValue` field. This information needs to be protected from modification and becomes an input to the signature algorithm (hence why proofValue can't be in it!).
 
-These options need to be canonized and protected by the signature. I recommend supplying the canonized information into the BBS `header` parameter. Note that this parameter gets hashed so there is no need for additional hashing (however there may be reasons to hash for consistency with the message processing).
+These options need to be canonized and protected by the signature. I recommend supplying the canonized information into the BBS `header` parameter. Note that this parameter gets hashed so there is no need for additional hashing (however there may be reasons to hash for consistency with the message processing). **Issue** with this approach is that this info needs to be supplied to all BBS proofs and hence `header` information cannot be linkable. 
 
 Note that in Mattr's implementation they [concatenate the lists of statements from the proof options with the document statements](https://github.com/mattrglobal/jsonld-signatures-bbs/blob/cd936ea71a871633ddead4f91a0e2de1c0ed82cc/src/BbsBlsSignature2020.ts#L262-L276) and use that as the *messages* to BBS. This uses Mattr's older [BBS implementation](https://github.com/mattrglobal/node-bbs-signatures) that doesn't match the IETF BBS draft, i.e., no `header` field. It also has an open issue on "required revealed".
 
+**Issue**: if we use the BBS `header` to protect the original signature "proof options" this information needs to be saved in the verifiable presentations in such a way that it can be recovered since BBS proof verification relies on it. It may also contain "linkable" information? Or information not to be disclosed such as the `created` field. Or we can create and include a hash of this information... Hmm, what we put in the `header` could provide linkability... Hence it has to be very generic and not specific to a particular credential.
+
 ### Revised Signing Algorithm
 
-1. Unsigned document ==> canonize to quads ==> separate to messages ==> UTF-8 encode to bytes ==> array of octet messages. These will be the messages given to BBS and processed by [map message to scalar as hash](https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#section-4.3.1).
-2. Furnish sufficient info to *issuer* to enable them to set
-3. Proof options ==> canonize
+Features: no "double" hashing of messages; uses BBS `header` to protect VC proof options.
 
-## Derived Proof Algorithm
+1. Unsigned document ==> canonize to quads ==> separate to messages ==> UTF-8 encode to bytes ==> array of byte messages. These will be the messages given to BBS and processed by [map message to scalar as hash](https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#section-4.3.1).
+2. Furnish sufficient info to *issuer* to enable them to set the `requiredRevealStatements`. Tried using a JSON-LD framing procedure for this.
+3. Proof options ==> canonize ==> convert to bytes. *Note*: we do not break this into separate items for each quad.
+4. Run BBS's "message to scalar" function on the byte messages from step 1.
+5. BBS preliminaries: make sure there are enough generators for the number of "messages".
+6. BBS sign
+
+## Verification Algorithm
+
+This was rather straight forward based on the above signing:
+
+1. Separate signed VC document into unsigned document and proof.
+2. Process unsigned document to get messages like in the signing algorithm
+3. Get "proof options" from proof (just make a copy and remove the `proofValue` field), process this like in the signing algorithm to recreate the BBS `header` input.
+4. Recover the public key and run BBS verify.
+
+## BBS Derived Proofs and Verifiable Presentations
+
+BBS has the concept of "proofs" that are derived from the original list of messages and associated BBS signature. The recipient of the original list of message can choose to selectively disclose a subset of the messages and produce a "proof" that will verify against the original issuers public key (as long as the disclosed messages haven't been modified). The value of the *proof* can be made unlinkable to any other "proof value" that the recipient may generate.
+
+Such usage seems to call for the concept of a [verifiable presentation](https://www.w3.org/TR/vc-data-model-2.0/#presentations) (VP) and we will use a VP to hold our "BBS proofs". The [presentation data model](https://www.w3.org/TR/vc-data-model-2.0/#presentations-0).
+
+
+### CCG draft algorithm
 
 From [Section 8](https://w3c-ccg.github.io/ldp-bbs2020/#derive-proof-algorithm):
 
