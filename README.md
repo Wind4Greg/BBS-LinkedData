@@ -3,7 +3,7 @@
 
 In this repository we develop code to demonstrate the key steps in applying the BBS signature suite to verifiable credentials. We fill in the gaps in the specification with the most reasonable or straight forward approach and provide justification here.
 
-**Issue**: Since BBS is built with 3 party model should we associate "BBS signature" with the original issuing of the *verifiable credential* and "BBS proofs" (which are derived from the signature) with a *verifiable presentation*? Otherwise we need a way to indicate in the *cryptosuite* whether we are dealing with a *BBS signature* or *BBS proof*. Another way of handling this is some type of multiformat for the `proofValue` field.
+**Issue**: Since BBS is built with 3 party model should we associate "BBS signature" with the original issuing of the *verifiable credential* and "BBS proofs" (which are derived from the signature) with a *verifiable presentation*? Otherwise we need a way to indicate in the *cryptosuite* whether we are dealing with a *BBS signature* or *BBS proof*. Another way of handling this is some type of multiformat for the `proofValue` field. For now we are assuming "BBS signature" with a signed credential and a "BBS proof" with a verifiable presentation.
 
 ## References
 
@@ -98,7 +98,7 @@ Note that in Mattr's implementation they [concatenate the lists of statements fr
 Features: no "double" hashing of messages;
 
 1. Unsigned document ==> canonize to quads ==> separate to list ==> UTF-8 encode to bytes ==> array of document byte messages. These will be the messages given to BBS and processed by [map message to scalar as hash](https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#section-4.3.1).
-2. Proof options ==> canonize ==> separate to list ==> UTF-8 encode to bytes ==> array of option byte messages. **Note**: proof options cannot contain `proofValue` or `requiredRevealStatements` since they haven't been computed yet. We could protect the `requireRevealStatements` via the BBS `header`.
+2. Proof options ==> canonize ==> separate to list ==> UTF-8 encode to bytes ==> array of option byte messages. **Note**: proof options cannot contain `proofValue` or `requiredRevealStatements` since they haven't been computed yet. We could protect the `requireRevealStatements` via the BBS `header`. Currently calculating but not protecting yet.
 3. Concatenate option list with document list to get the list of BBS messages
 4. Furnish sufficient info to *issuer* to enable them to set the `requiredRevealStatements`. Tried using a JSON-LD framing procedure for this. Do this across both document and options.
 5. Run BBS's "message to scalar" function on the byte messages from step 3.
@@ -110,20 +110,38 @@ Features: no "double" hashing of messages;
 This was rather straight forward based on the above signing:
 
 1. Separate signed VC document into unsigned document and proof.
-2. Process unsigned document to get messages like in the signing algorithm
-3. Get "proof options" from proof (just make a copy and remove the `proofValue` field), process this like in the signing algorithm to recreate the BBS `header` input.
-4. Recover the public key and run BBS verify.
+2. Canonize unsigned document and convert into array of quads.
+3. Derive "proof options" from proof, e.g.,  make a copy and remove the `proofValue` and `requireRevealStatements` fields. Add in context from unsigned document, canonize, and convert into an array of quads., process this like in the signing algorithm to recreate the BBS `header` input.
+4. Concatenate quads arrays from proof options and unsigned document.
+5. Recover the public key and run BBS verify against `proofValue` (convert to bytes from base58btc)
 
 ## BBS Derived Proofs and Verifiable Presentations
 
 BBS has the concept of "proofs" that are derived from the original list of messages and associated BBS signature. The recipient of the original list of message can choose to selectively disclose a subset of the messages and produce a "proof" that will verify against the original issuers public key (as long as the disclosed messages haven't been modified). The value of the *proof* can be made unlinkable to any other "proof value" that the recipient may generate.
 
-Such usage seems to call for the concept of a [verifiable presentation](https://www.w3.org/TR/vc-data-model-2.0/#presentations) (VP) and we will use a VP to hold our "BBS proofs". The [presentation data model](https://www.w3.org/TR/vc-data-model-2.0/#presentations-0).
+Such usage seems to call for the concept of a [verifiable presentation](https://www.w3.org/TR/vc-data-model-2.0/#presentations) (VP) and we will use a VP to hold our "BBS proofs". The [presentation data model](https://www.w3.org/TR/vc-data-model-2.0/#presentations-0). Note that in this model the VP contains the VC and that the contained VC may have `proof` information. We will apply "selective disclosure" and "required reveal" to both the VC and its included proof.
 
+### Suggested Procedure
 
-### CCG draft algorithm
+**Input**: VC signed with BBS signature per the signing algorithm (above).
+**Output**: A VP "signed" via a "BBS proof". The VP contains a VC and containing `proof` that have been subject to "required reveal" constraints from the specification and from the issuer, and subject to "selective disclosure" constraints from the *holder*.
 
-From [Section 8](https://w3c-ccg.github.io/ldp-bbs2020/#derive-proof-algorithm):
+1. Decompose the original signed VC into *unsigned* document (VC without proof) and *VCOptions* (just the proof) pieces
+2. Canonize and convert the unsigned document to an array of quads
+3. Extract the `proofValue`(BBS signature) and `requiredRevealStatements`(indexes for quads that must be revealed) from the *VCOptions* portion.
+4. Remove the `proofValue` and `requiredRevealStatements` from the *VCOptions*. Canonize and convert to an array of quads.
+5. Concatenate quad arrays for *VCOptions* and *unsigned* in that order. Call this *allQuads*
+6. Run a JSON-LD framing based procedure to determine quads to be selectively disclosed for the *unsigned* document.
+7. Run a JSON-LD framing based procedure to determine quads to be selectively disclosed for the *VCOptions*.
+8. Obtain the indexes of the quads in the *allQuads* array for the selective disclosure quads in the previous two steps. These are the *selectiveDisclosure* indexes. Take a set union of these indexes with the `requiredRevealStatements` (these are indexes too). Save these to the `disclosedIndexes`.
+9. Create an "proof options" for the VP. *vpOptions*. Add the `disclosedIndexes` to it. Canonize, and convert to bytes base on UTF-8 encoding. This will be the *ph* (presentation header).
+10. Compute the BBS proof = ProofGen(PK, signature, header, ph, messages, disclosed_indexes). Use base58btc encoding and add this information to the *vpOptions* `proofValue` field.
+11. Created a new VC based on relevant quads according to `disclosedIndexes` and the *allQuads*; Create a new "proof" field for this VC based on the corresponding `disclosedIndexes` and *allQuads*. 
+12. Assemble the VP from the new VC and *vpOptions* field.
+
+### Existing CCG draft algorithm
+
+From [Derive proof algorithm](https://w3c-ccg.github.io/vc-di-bbs/#derive-proof-algorithm):
 
 Definitions (my emphasis):
 

@@ -33,9 +33,7 @@ const canonDoc = await jsonld.canonize(unsigned);
 // console.log(cannonDoc);
 
 // Put quads into arrays
-const docQArray = canonDoc.split('\n');
-docQArray.pop(); // Get rid of empty element at end
-
+const docQArray = canonDoc.split('\n').filter(item => item.length > 0);
 
 // Assemble proof options
 const proofOptions = Object.assign({}, proof);
@@ -45,10 +43,8 @@ delete proofOptions.requiredRevealStatements;
 // canonize proof options and convert to bytes
 proofOptions['@context'] = document['@context'];
 const canonOptions = await jsonld.canonize(proofOptions);
-const proofQArray = canonOptions.split('\n');
-proofQArray.pop(); // Get rid of empty element at end
+const proofQArray = canonOptions.split('\n').filter(item => item.length > 0);
 const allQArray = proofQArray.concat(docQArray);
-
 
 // convert document quads to bytes and map to scalars
 const allQByteArray = allQArray.map(q => te.encode(q));
