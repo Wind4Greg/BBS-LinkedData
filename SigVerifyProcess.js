@@ -40,15 +40,19 @@ docQArray.pop(); // Get rid of empty element at end
 // Assemble proof options
 const proofOptions = Object.assign({}, proof);
 delete proofOptions.proofValue;
+delete proofOptions.requiredRevealStatements;
 
 // canonize proof options and convert to bytes
 proofOptions['@context'] = document['@context'];
-const canonProof = await jsonld.canonize(proofOptions);
-const canonProofBytes = te.encode(canonProof);
+const canonOptions = await jsonld.canonize(proofOptions);
+const proofQArray = canonOptions.split('\n');
+proofQArray.pop(); // Get rid of empty element at end
+const allQArray = proofQArray.concat(docQArray);
+
 
 // convert document quads to bytes and map to scalars
-const docQByteArray = docQArray.map(q => te.encode(q));
-const messageScalars = await messages_to_scalars(docQByteArray);
+const allQByteArray = allQArray.map(q => te.encode(q));
+const messageScalars = await messages_to_scalars(allQByteArray);
 
 // Get ready to verify
 const privateKey = hexToBytes("4a39afffd624d69e81808b2e84385cc80bf86adadf764e030caa46c231f2a8d7");
@@ -56,7 +60,7 @@ const publicKey = publicFromPrivate(privateKey);
 const gens = await prepareGenerators(messageScalars.length);
 
 // Verify
-const header = canonProofBytes;
+const header = new Uint8Array();
 const signature = base58btc.decode(proof.proofValue);
 const verified = await verify(publicKey, signature, header, messageScalars,
   gens);

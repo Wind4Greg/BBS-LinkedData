@@ -52,7 +52,7 @@ Note that they also say:
 
 > The indices corresponding to the statements for the verificationMethod and proofPurpose as apart of the data integrity proof MUST always be present.
 
-However this doesn't make sense since in all previous cases the VC *proof config/options* has been kept separate from the content as is *required*. Part of the problem is the current CCG draft does not address this. However the IETF BBS signature draft has a very good mechanism for dealing with "associated data" via its `header` parameter.
+Hmm in all previous cases the VC *proof config/options* has been hashed separate from the other VC content then the combined hash has been signed. Also what is the relationship between the VC and the VP proofs? In the VC Data Model V2 they have a section on [ZKPs](https://www.w3.org/TR/vc-data-model-2.0/#zero-knowledge-proofs) and show including some of the original proof with the VC in the presentation. Hence it seems like we should break up the *proof config/options* into separate quads too.
 
 **Issue**: Need to make it easy for issuer to specify the `requiredRevealStatements`. Can we use the "Framing" procedure, see [FrameCheck.js](FrameCheck.js) to get the indices the issuer wants to require to be revealed? Trying this... Should more constraints be put on this field? Sorted, no out of bound indices?
 
@@ -89,22 +89,21 @@ VC Data Integrity says: "Let *hashData* be the result of hashing the *transforme
 
 In the VC approaches for EdDSA they have a procedure to create [proof configuration](https://w3c.github.io/vc-di-eddsa/#proof-configuration-eddsa-2022), which basically includes everything that would go into the VC `proof` field except the `proofValue` field. This information needs to be protected from modification and becomes an input to the signature algorithm (hence why proofValue can't be in it!).
 
-These options need to be canonized and protected by the signature. I recommend supplying the canonized information into the BBS `header` parameter. Note that this parameter gets hashed so there is no need for additional hashing (however there may be reasons to hash for consistency with the message processing). **Issue** with this approach is that this info needs to be supplied to all BBS proofs and hence `header` information cannot be linkable. 
+These options need to be canonized and protected by the signature.
 
-Note that in Mattr's implementation they [concatenate the lists of statements from the proof options with the document statements](https://github.com/mattrglobal/jsonld-signatures-bbs/blob/cd936ea71a871633ddead4f91a0e2de1c0ed82cc/src/BbsBlsSignature2020.ts#L262-L276) and use that as the *messages* to BBS. This uses Mattr's older [BBS implementation](https://github.com/mattrglobal/node-bbs-signatures) that doesn't match the IETF BBS draft, i.e., no `header` field. It also has an open issue on "required revealed".
-
-**Issue**: if we use the BBS `header` to protect the original signature "proof options" this information needs to be saved in the verifiable presentations in such a way that it can be recovered since BBS proof verification relies on it. It may also contain "linkable" information? Or information not to be disclosed such as the `created` field. Or we can create and include a hash of this information... Hmm, what we put in the `header` could provide linkability... Hence it has to be very generic and not specific to a particular credential.
+Note that in Mattr's implementation they [concatenate the lists of statements from the proof options with the document statements](https://github.com/mattrglobal/jsonld-signatures-bbs/blob/cd936ea71a871633ddead4f91a0e2de1c0ed82cc/src/BbsBlsSignature2020.ts#L262-L276) and use that as the *messages* to BBS.
 
 ### Revised Signing Algorithm
 
-Features: no "double" hashing of messages; uses BBS `header` to protect VC proof options.
+Features: no "double" hashing of messages;
 
-1. Unsigned document ==> canonize to quads ==> separate to messages ==> UTF-8 encode to bytes ==> array of byte messages. These will be the messages given to BBS and processed by [map message to scalar as hash](https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#section-4.3.1).
-2. Furnish sufficient info to *issuer* to enable them to set the `requiredRevealStatements`. Tried using a JSON-LD framing procedure for this.
-3. Proof options ==> canonize ==> convert to bytes. *Note*: we do not break this into separate items for each quad.
-4. Run BBS's "message to scalar" function on the byte messages from step 1.
-5. BBS preliminaries: make sure there are enough generators for the number of "messages".
-6. BBS sign
+1. Unsigned document ==> canonize to quads ==> separate to list ==> UTF-8 encode to bytes ==> array of document byte messages. These will be the messages given to BBS and processed by [map message to scalar as hash](https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#section-4.3.1).
+2. Proof options ==> canonize ==> separate to list ==> UTF-8 encode to bytes ==> array of option byte messages. **Note**: proof options cannot contain `proofValue` or `requiredRevealStatements` since they haven't been computed yet. We could protect the `requireRevealStatements` via the BBS `header`.
+3. Concatenate option list with document list to get the list of BBS messages
+4. Furnish sufficient info to *issuer* to enable them to set the `requiredRevealStatements`. Tried using a JSON-LD framing procedure for this. Do this across both document and options.
+5. Run BBS's "message to scalar" function on the byte messages from step 3.
+6. BBS preliminaries: make sure there are enough generators for the number of "messages".
+7. BBS sign
 
 ## Verification Algorithm
 

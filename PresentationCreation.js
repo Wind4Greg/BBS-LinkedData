@@ -1,6 +1,7 @@
 /*
     Figuring out steps for BBS proof/verifiable presentation creation.
     Note: Not currently doing blank node processing stuff.
+    **TODO**: Update for BBS header change...
 */
 /*global console, TextEncoder, URL*/
 import {
