@@ -1,17 +1,57 @@
 
 # BBS for Verifiable Credentials
 
-In this repository we develop code to demonstrate the key steps in applying the BBS signature suite to verifiable credentials. We fill in the gaps in the specification with the most reasonable or straight forward approach and provide justification here.
+## Introduction
 
-**Issue**: Since BBS is built with 3 party model should we associate "BBS signature" with the original issuing of the *verifiable credential* and "BBS proofs" (which are derived from the signature) with a *verifiable presentation*? Otherwise we need a way to indicate in the *cryptosuite* whether we are dealing with a *BBS signature* or *BBS proof*. Another way of handling this is some type of multiformat for the `proofValue` field. For now we are assuming "BBS signature" with a signed credential and a "BBS proof" with a verifiable presentation.
+In this repository we develop code to demonstrate key steps in applying the [draft BBS signature suite](https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html) to verifiable credentials/presentations using the [Verifiable Credential Data Model v2.0](https://www.w3.org/TR/vc-data-model-2.0/#abstract) along with the [Verifiable Credential Data Integrity 1.0](https://w3c.github.io/vc-data-integrity/#abstract) draft.
+
+**Caveat**: Code examples may be more up to date and accurate than the procedures in this `README.md` file.
+
+**Issue**: Terminology collision! Both BBS signatures and verifiable credentials use the term *proof*. However these have very different meanings as will be clarified below.
+
+## VCs, VPs, and Selective Disclosure
+
+The "BBS signature suite" is ready made for a three party model of *issuer*, *holder*, and *verifier* utilizing *verifiable credentials* (VCs) and *verifiable presentations* (VP). In particular:
+
+1. The *issuer* issues a verifiable credential (VC) to the holder that is signed via a **BBS signature** to the *holder*. This VC may contain information that the *holder* considers sensitive. This VC is signed with the issuers BBS  *public key*. Note that the *issuer* may want to require a subset of the VC information is "required to be revealed" so that information cannot be misused in some way.
+2. The *holder* wants to selectively disclose a subset of the VC from above to a *verifier*. It does this by creating a *verifiable presentation* (VP) containing the appropriate subset of the VC and adds a "verifiable credential data integrity proof" to the VP based on a **BBS proof** which the *holder* derives from the issued VC, the *BBS signature* and issuer's *public key*.
+3. The *verifier* receives the *verifiable presentation* (VP) from the holder. They can verify that the subset of information contained in the VP has not been modified by validating the *BBS proof* contained in the VP against the *issuer*'s *public key*.
+
+The values contained in *BBS proofs* contained in VPs are unlinkable. However the other information contained in a VP would by its nature reveal something about the *holder* and could introduce *linkable* information. In addition, work is underway to minimize information leakage during processing steps.
+
+We follow the general outline from the VC Data Model V2 on [zero knowledge proofs](https://www.w3.org/TR/vc-data-model-2.0/#zero-knowledge-proofs). Hence in verifiable credential terminology the VP containing selective disclosure information will have a `proof` field, and it will contain a VC that will also contain a `proof` field (subject to selective disclosure).
+
+### BBS Signature Suite Procedures and VC/VPs
+
+Key BBS signature suite procedures:
+
+1. `signature = Sign(Secret_Key, Public_key, header, messages)` where the `header` is "additional information" that is cryptographically protected by the `signature` along with the list of `messages`. The `header` must be revealed at all steps so care must be taken not to put inappropriate material in there. The bulk of the work here is in mapping between VC/VP and the `messages` via JSON-LD canonicalization techniques. I'm inclined to recommend that the only VC specific information in the `header` is "required reveal statements" from the *issuer*.
+2. `result = Verify(Public, signature, header, messages)` is used when the *holder* verifies the VC it receives from the *issuer*.
+3. `bbs_proof = ProofGen(Public_key, signature, header, ph, messages, disclosed_indexes)` is used when the *holder* want to prepare a VP which may selectively disclose only a subset of the original VC information. Note how this is thought of by BBS as a set of indexes for the messages to be disclosed. The `Public_key` here is of the original *issuer* and not the *holder*. `ph` = "presentation header" and is protected by the cryptographic information in the `bbs_proof`. My recommendation is use the `ph` field to protect the "VP proof options" that get attached to the VP. See code example.
+4. `result = ProofVerify(Public_key, bbs_proof, header, ph, disclosed_messages, disclosed_indexes)` is used by the *verifier* to validate the "disclosed messages", i.e. the VP, against the original issuers public key.
+
+## Processing Code Examples
+
+* BBS signing a VC: [SigningProcess.js](SigningProcess.js)
+* BBS verification of a VC: [SigVerifyProcess.js](SigVerifyProcess.js)
+* BBS selective disclosure VP creation: [PresentationCreation.js](PresentationCreation.js)
+* Selective disclosure VP validation via BBS: [PresentationVerification.js](PresentationVerification.js)
+
+## Example Inputs and Outputs
+
+* Unsigned VCs [unsigned.json](input/unsigned.json), [unsignedNoIds.json](input/unsignedNoIds.json)
+* Signed VC: [signedDocBBS.json](exampleIO/signedDocBBS.json)
+* Verifiable Presentation with BBS proof: [presentation.json](exampleIO/presentation.json)
 
 ## References
 
 * [W3C: BBS+ Signatures 2020 Draft Community Group Report](https://w3c-ccg.github.io/vc-di-bbs/)
 * [GitHub: BBS+ Signature Linked Data Proofs](https://github.com/w3c-ccg/ldp-bbs2020/)
-* [DIF: BBS Signature Draft](https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#)
+* [DIF: BBS Signature Draft](https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html)
 * [GitHub DIF BBS](https://github.com/decentralized-identity/bbs-signature) Uses markdown and tooling to produce draft. Has test fixtures/vectors.
 * [The BBS Signature Scheme (IRTF draft)](https://www.ietf.org/archive/id/draft-irtf-cfrg-bbs-signatures-02.html)
+
+# Details
 
 ## Multikey Verification Method
 

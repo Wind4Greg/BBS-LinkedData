@@ -1,0 +1,53 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/credentials/v2",
+    {
+      "firstName": "http://schema.org/firstName"
+    },
+    {
+      "email": "http://schema.org/email"
+    },
+    {
+      "jobTitle": "http://schema.org/jobTitle"
+    },
+    {
+      "lastName": "http://schema.org/lastName"
+    },
+    {
+      "telephone": "http://schema.org/telephone"
+    }
+  ],
+  "id": "urn:uuid:58172aac-d8ba-11ed-83dd-0b3aef56cc33",
+  "type": "VerifiableCredential",
+  "name": "Multi item credential",
+  "description": "A small multi item example for selective disclosure",
+  "issuer": "https://vc.example/issuers/5678",
+  "validFrom": "2023-01-01T00:00:00Z",
+  "credentialSubject": {
+    "id": "did:example:abcdefgh",
+    "firstName": "Jane",
+    "lastName": "Does",
+    "jobTitle": "Professor",
+    "email": "jane.doe@example.com",
+    "telephone": "(425) 123-4567"
+  },
+  "proof": {
+    "id": "urn:uuid:eca3bb18-49c1-4602-a6dd-01bad440dcd9",
+    "type": "DataIntegrityProof",
+    "cryptosuite": "bbs-2023",
+    "created": "2020-11-05T19:23:24Z",
+    "verificationMethod": "https://di.example/issuer#zUC7Fk29SRjBb5D4T8KbvsG562YHrVChFoZDw9mjfze4fmSUoMv6pop4kk9DRbjXXyCqmoprwikuEeRLt5ybxk2m88hAYJQLHU7o7S9LB7Y4Q8Lvu84v4YB4PXcGCCei1Qex2XF",
+    "proofPurpose": "assertionMethod",
+    "requiredRevealStatements": [
+      1,
+      3,
+      4,
+      7,
+      10,
+      13,
+      14,
+      15
+    ],
+    "proofValue": "zbWjMMDbq3N7Z5M8oaL8jCSJhZeFcPubKDkWrYf3ZFV3e8dkYTfyGv67GMHXS2H8kGX36jJZ8WyAEbLPCt5cQRQWKUPwqNJWuP8WwH4Bz85XwDaicBT5fGeVvzvtB4sHas9czQUoZZ4vo3DTX2TJ82SJU3"
+  }
+}

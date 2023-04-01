@@ -1,0 +1,63 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/credentials/v2",
+    {
+      "firstName": "http://schema.org/firstName"
+    },
+    {
+      "email": "http://schema.org/email"
+    },
+    {
+      "jobTitle": "http://schema.org/jobTitle"
+    },
+    {
+      "lastName": "http://schema.org/lastName"
+    },
+    {
+      "telephone": "http://schema.org/telephone"
+    }
+  ],
+  "type": "VerifiablePresentation",
+  "verifiableCredential": {
+    "@graph": [
+      {
+        "id": "did:example:abcdefgh",
+        "email": "jane.doe@example.com",
+        "jobTitle": "Professor"
+      },
+      {
+        "id": "urn:uuid:58172aac-d8ba-11ed-83dd-0b3aef56cc33",
+        "type": "VerifiableCredential",
+        "https://schema.org/name": "Multi item credential",
+        "credentialSubject": "did:example:abcdefgh",
+        "issuer": "https://vc.example/issuers/5678",
+        "validFrom": "2023-01-01T00:00:00Z"
+      }
+    ],
+    "proof": {
+      "id": "urn:uuid:eca3bb18-49c1-4602-a6dd-01bad440dcd9",
+      "type": "DataIntegrityProof",
+      "proofPurpose": "assertionMethod",
+      "verificationMethod": "https://di.example/issuer#zUC7Fk29SRjBb5D4T8KbvsG562YHrVChFoZDw9mjfze4fmSUoMv6pop4kk9DRbjXXyCqmoprwikuEeRLt5ybxk2m88hAYJQLHU7o7S9LB7Y4Q8Lvu84v4YB4PXcGCCei1Qex2XF"
+    }
+  },
+  "proof": {
+    "type": "DataIntegrityProof",
+    "cryptosuite": "bbs-2023",
+    "created": "2023-03-29T19:23:24Z",
+    "proofPurpose": "assertionMethod",
+    "proofValue": "z41QcKMvwjVJS21eELjBSgZXTNVeVEoY59A3X77kUn5TuiYASTZ5rkBjkPd1oicMgkwje28m3XSuYRp96krpyTj5DS2rtqgQRaASkqrRvZgzHqkqDmyTh7tiFLkPsHS47RstVFwyCyVtugZQUapLhNsj3VPzxanVz2EBTq2EBqvMLgPcyBFa6cKstUn5ZBr3Jp9WaQHx7oCH8tZvhsEW1SRU8VzDCkn1UZhj4DsXg69AULmyE5rLta2Rs45sqob2ddSp9ixyU9ztpbbgMmSMrV19oMEFHPGzYU6jAMSLmpdkJKynxZ3NWQTNLagQbF6i9rKZE9KVMM3W9xdYdKLCQ8BM9a6Zajs83CxQwA2oPfsAkCnQT3Eu3anUyNLSMuDKbE6FhcmNCmTth6L1Z9weTkNk4x75jCp1TrJT9Ly9aDMayj2KwdUZS6Ab8miHufjTjNtqRWnd8PTxJAuWDyCESd5eNCfAvKc6UG3Qe7ERViJPcYmnjAnzXetaiwZ1Qx5BoNU4146MgV2HhfxnZMyHEivaWHYHDRQzAwk8ohokEYE9iWSBf8ecjZtqxAfHstd9mMHLgeuNvUGjs1qAhDb5e85rKVaVjJ9byDB9kHmkiXEBkHMtoUDyUKa1caHTdCA9tPvtitmdY3rkV14aZLCsdYaANbKeKNSsCZFtPLn",
+    "disclosedIndexes": [
+      1,
+      3,
+      4,
+      5,
+      7,
+      10,
+      12,
+      13,
+      14,
+      15
+    ]
+  }
+}
