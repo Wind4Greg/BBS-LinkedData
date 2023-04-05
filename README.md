@@ -51,6 +51,12 @@ Key BBS signature suite procedures:
 * [GitHub DIF BBS](https://github.com/decentralized-identity/bbs-signature) Uses markdown and tooling to produce draft. Has test fixtures/vectors.
 * [The BBS Signature Scheme (IRTF draft)](https://www.ietf.org/archive/id/draft-irtf-cfrg-bbs-signatures-02.html)
 
+### JSON-LD References
+
+* [JSON-LD 1.1 Framing](https://www.w3.org/TR/json-ld11-framing), 2020.
+* [RDF 1.1 N-Quads](https://www.w3.org/TR/n-quads/), 2014, Used in JSON-LD canonicalization. A "quad" is an RDF triple (subject, predicate, object) with a graph identifier added (so four items).
+* [RDF 1.1 Concepts and Abstract Syntax](https://www.w3.org/TR/rdf11-concepts/#section-Introduction), 2014.
+
 # Details
 
 ## Multikey Verification Method
@@ -95,6 +101,10 @@ Note that they also say:
 Hmm in all previous cases the VC *proof config/options* has been hashed separate from the other VC content then the combined hash has been signed. Also what is the relationship between the VC and the VP proofs? In the VC Data Model V2 they have a section on [ZKPs](https://www.w3.org/TR/vc-data-model-2.0/#zero-knowledge-proofs) and show including some of the original proof with the VC in the presentation. Hence it seems like we should break up the *proof config/options* into separate quads too.
 
 **Issue**: Need to make it easy for issuer to specify the `requiredRevealStatements`. Can we use the "Framing" procedure, see [FrameCheck.js](FrameCheck.js) to get the indices the issuer wants to require to be revealed? Trying this... Should more constraints be put on this field? Sorted, no out of bound indices?
+
+**Simplification**: In the verifiable presentation (VP) we include the VC with part of its proof subject to selective disclosure. Could we handle the VC with included proof options as a single entity for producing quads to feed to BBS rather than having separate unsigned document and "proof options"? This would simplify processing, i.e., finding selective disclosure indexes and reassembly of selectively disclosed VC (from VC and options quads).
+
+**Extension**: The specification has the concept of "required revealed statements". For a complicated VC it seems like statements could be "misrepresented", i.e., by taking them out of context (in a general sense not the "@context" of JSON-LD). Might we want to indicate that certain statements (quads) must be either not disclosed or disclosed only along with other statements. This could just be some simple relations amongst statement indexes and could be quite compact.
 
 ## Signing Algorithm
 
@@ -178,6 +188,8 @@ Such usage seems to call for the concept of a [verifiable presentation](https://
 10. Compute the BBS proof = ProofGen(PK, signature, header, ph, messages, disclosed_indexes). Use base58btc encoding and add this information to the *vpOptions* `proofValue` field.
 11. Created a new VC based on relevant quads according to `disclosedIndexes` and the *allQuads*; Create a new "proof" field for this VC based on the corresponding `disclosedIndexes` and *allQuads*. 
 12. Assemble the VP from the new VC and *vpOptions* field.
+
+**Questions/Issue**: Do we need to use JSON-LD framing to help us select "disclosed indexes" or "required revealed indexes". If we just select from the quads can we break the reconstructed VC? Can we use JSON-LD framing options or mechanisms to better reconstruct the selectively disclosed VC. In my simple processing I have a "@graph" array rather than nice containment of the `credentialSubject` directly in the `verifiableCredential` within the `verifiablePresentation`. See [presentation.json](exampleIO/presentation.json).
 
 ### Existing CCG draft algorithm
 
