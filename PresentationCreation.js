@@ -97,7 +97,15 @@ const selOptCompact = await jsonld.compact(selOpt, unsigned['@context']);
 writeFile('./output/selOptCompact.json',
   JSON.stringify(selOptCompact, null, 2));
 
-const header = new Uint8Array();
+// Recreate header from required reveal statement information
+const headerDoc = { // This would be standardized...
+  '@context': [{requiredRevealStatements:
+    'https://grotto-networking.com/bbsld/reqreveal'}],
+  '@id': 'urn:uuid:d5a758aa-c83f-495d-b8f5-be9b308429d5',
+  requiredRevealStatements
+};
+const headerCanon = await jsonld.canonize(headerDoc);
+const header = te.encode(headerCanon);
 
 // convert combined quads to bytes and map to scalars
 const docQByteArray = allQArray.map(q => te.encode(q));
@@ -121,8 +129,9 @@ const canonPresentProofBytes = te.encode(canonPresentProof);
 const ph = canonPresentProofBytes;
 
 // Get ready create proof, just need the public key
-const privateKey = hexToBytes('4a39afffd624d69e81808b2e84385cc80bf86adadf764e030caa46c231f2a8d7');
-const publicKey = publicFromPrivate(privateKey);
+const pubKeyEncoded = proof.verificationMethod.split('#')[1];
+let publicKey = base58btc.decode(pubKeyEncoded);
+publicKey = publicKey.slice(2);
 const gens = await prepareGenerators(messageScalars.length);
 const signature = base58btc.decode(proof.proofValue);
 
@@ -132,7 +141,8 @@ const presentProofValue = await proofGen(publicKey, signature, header, ph,
 // Assemble VP proof
 const presentProof = Object.assign({}, presentProofOptions,
   {proofValue: base58btc.encode(presentProofValue),
-    disclosedIndexes: discloseIndices
+    disclosedIndexes: discloseIndices,
+    requiredRevealStatements
   });
 delete presentProof['@context'];
 // console.log(JSON.stringify(presentProof, null, 2));

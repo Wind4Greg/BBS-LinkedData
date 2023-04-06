@@ -30,6 +30,7 @@ console.log(`BBS Pubic key length ${publicKey.length}`);
 console.log('BBS public key in hex:');
 console.log(bytesToHex(publicKey));
 const BBSG2Prefix = new Uint8Array(varint.encode(0xeb)); // Need to use varint on the multicodecs code
+console.log(`BBS G2 prefix length: ${BBSG2Prefix.length}`);
 const pubBBSEncoded = base58btc.encode(concatBytes(BBSG2Prefix, publicKey));
 console.log('BBS G2 encoded multikey:');
 console.log(pubBBSEncoded, '\n'); // Should start with characters zUC7

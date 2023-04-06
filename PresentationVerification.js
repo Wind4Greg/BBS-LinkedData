@@ -2,9 +2,8 @@
     Figuring out steps for the verification of BBS verifiable presentation.
 */
 /*global console, TextEncoder, URL*/
-import {
-  hexToBytes, messages_to_scalars, prepareGenerators, numUndisclosed,
-  proofVerify, publicFromPrivate} from '@grottonetworking/bbs-signatures';
+import {messages_to_scalars, numUndisclosed, prepareGenerators, proofVerify}
+  from '@grottonetworking/bbs-signatures';
 import {readFile, writeFile} from 'fs/promises';
 import {base58btc} from 'multiformats/bases/base58';
 import jsonld from 'jsonld';
@@ -50,21 +49,33 @@ const proofValue = base58btc.decode(presentOptions.proofValue);
 delete presentOptions.proofValue;
 const disclosedIndexes = presentOptions.disclosedIndexes;
 delete presentOptions.disclosedIndexes;
+const requiredRevealStatements = presentOptions.requiredRevealStatements;
+delete presentOptions.requiredRevealStatements;
 presentOptions['@context'] = context;
 const canonPresentProof = await jsonld.canonize(presentOptions);
 writeFile('./output/canonPresentProof.txt', canonPresentProof);
 const canonPresentProofBytes = te.encode(canonPresentProof);
 const ph = canonPresentProofBytes;
 
-const header = new Uint8Array();
+// Recreate header from required reveal statement information
+const headerDoc = { // This would be standardized...
+  '@context': [{requiredRevealStatements:
+    'https://grotto-networking.com/bbsld/reqreveal'}],
+  '@id': 'urn:uuid:d5a758aa-c83f-495d-b8f5-be9b308429d5',
+  requiredRevealStatements
+};
+const headerCanon = await jsonld.canonize(headerDoc);
+const header = te.encode(headerCanon);
+
 
 // convert combined quads to bytes and map to scalars
 const docQByteArray = allQArray.map(q => te.encode(q));
 const messageScalars = await messages_to_scalars(docQByteArray);
 
 // Get ready create proof, just need the public key
-const privateKey = hexToBytes('4a39afffd624d69e81808b2e84385cc80bf86adadf764e030caa46c231f2a8d7');
-const publicKey = publicFromPrivate(privateKey);
+const pubKeyEncoded = proof.verificationMethod.split('#')[1];
+let publicKey = base58btc.decode(pubKeyEncoded);
+publicKey = publicKey.slice(2);
 const U = numUndisclosed(proofValue); // Number Undisclosed
 const R = messageScalars.length; // Number Disclosed
 console.log(`Number undisclosed: ${U}, number revealed: ${R}`);

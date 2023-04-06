@@ -89,8 +89,18 @@ const privateKey = hexToBytes('4a39afffd624d69e81808b2e84385cc80bf86adadf764e030
 const publicKey = publicFromPrivate(privateKey);
 const gens = await prepareGenerators(messageScalars.length);
 
+// Protect required reveal statement information by putting canonized version
+// into the header.
+const headerDoc = { // This would be standardized...
+  '@context': [{requiredRevealStatements:
+    'https://grotto-networking.com/bbsld/reqreveal'}],
+  '@id': 'urn:uuid:d5a758aa-c83f-495d-b8f5-be9b308429d5',
+  requiredRevealStatements: reqDisclose
+};
+const headerCanon = await jsonld.canonize(headerDoc);
+const header = te.encode(headerCanon);
+
 // Signing
-const header = new Uint8Array(); // no header yet, should protect reqDisclose...
 const signature = await sign(privateKey, publicKey, header, messageScalars,
   gens);
 

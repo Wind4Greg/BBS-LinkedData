@@ -5,8 +5,8 @@
 
 */
 /*global console, TextEncoder, URL*/
-import {hexToBytes, messages_to_scalars, prepareGenerators, publicFromPrivate,
-  verify} from '@grottonetworking/bbs-signatures';
+import {messages_to_scalars, prepareGenerators, verify}
+  from '@grottonetworking/bbs-signatures';
 import {readFile, writeFile} from 'fs/promises';
 import {base58btc} from 'multiformats/bases/base58';
 import jsonld from 'jsonld';
@@ -23,8 +23,8 @@ const document = JSON.parse(
 );
 
 // Separate document from proof
-let proof = document.proof;
-let unsigned = Object.assign({}, document);
+const proof = document.proof;
+const unsigned = Object.assign({}, document);
 delete unsigned.proof;
 
 // Canonize the unsigned document
@@ -38,6 +38,7 @@ const docQArray = canonDoc.split('\n').filter(item => item.length > 0);
 // Assemble proof options
 const proofOptions = Object.assign({}, proof);
 delete proofOptions.proofValue;
+const requiredRevealStatements = proofOptions.requiredRevealStatements;
 delete proofOptions.requiredRevealStatements;
 
 // canonize proof options and convert to bytes
@@ -50,13 +51,23 @@ const allQArray = proofQArray.concat(docQArray);
 const allQByteArray = allQArray.map(q => te.encode(q));
 const messageScalars = await messages_to_scalars(allQByteArray);
 
-// Get ready to verify
-const privateKey = hexToBytes("4a39afffd624d69e81808b2e84385cc80bf86adadf764e030caa46c231f2a8d7");
-const publicKey = publicFromPrivate(privateKey);
+// Recreate header from required reveal statement information
+const headerDoc = { // This would be standardized...
+  '@context': [{requiredRevealStatements:
+    'https://grotto-networking.com/bbsld/reqreveal'}],
+  '@id': 'urn:uuid:d5a758aa-c83f-495d-b8f5-be9b308429d5',
+  requiredRevealStatements
+};
+const headerCanon = await jsonld.canonize(headerDoc);
+const header = te.encode(headerCanon);
+
+// Get ready to verify, Get the public key bytes
+const pubKeyEncoded = proof.verificationMethod.split('#')[1];
+let publicKey = base58btc.decode(pubKeyEncoded);
+publicKey = publicKey.slice(2);
 const gens = await prepareGenerators(messageScalars.length);
 
 // Verify
-const header = new Uint8Array();
 const signature = base58btc.decode(proof.proofValue);
 const verified = await verify(publicKey, signature, header, messageScalars,
   gens);
