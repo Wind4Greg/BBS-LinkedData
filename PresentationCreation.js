@@ -44,7 +44,7 @@ proofOptions['@context'] = document['@context'];
 const canonOptions = await jsonld.canonize(proofOptions);
 const proofQArray = canonOptions.split('\n').filter(item => item.length > 0);
 const allQArray = proofQArray.concat(docQArray);
-writeFile('./output/presentAllQuads.json',
+writeFile('./output/presentAllQuads.txt',
   allQArray.join('\n'));
 console.log(`Options quad length ${proofQArray.length}, Unsigned quad length ${docQArray.length}`);
 

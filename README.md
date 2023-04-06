@@ -7,17 +7,17 @@ In this repository we develop code to demonstrate key steps in applying the [dra
 
 **Caveat**: Code examples may be more up to date and accurate than the procedures in this `README.md` file.
 
-**Issue**: Terminology collision! Both BBS signatures and verifiable credentials use the term *proof*. However these have very different meanings as will be clarified below.
+**Important**: We have a terminology collision! Both BBS signatures and verifiable credentials use the terms *proof* and *signature*. However these can have very different meanings as will be clarified below.
 
 ## VCs, VPs, and Selective Disclosure
 
 The "BBS signature suite" is ready made for a three party model of *issuer*, *holder*, and *verifier* utilizing *verifiable credentials* (VCs) and *verifiable presentations* (VP). In particular:
 
-1. The *issuer* issues a verifiable credential (VC) to the holder that is signed via a **BBS signature** to the *holder*. This VC may contain information that the *holder* considers sensitive. This VC is signed with the issuers BBS  *public key*. Note that the *issuer* may want to require a subset of the VC information is "required to be revealed" so that information cannot be misused in some way.
+1. The *issuer* issues a verifiable credential (VC) to the holder that is signed via a **BBS signature** to the *holder*. This VC may contain information that the *holder* considers sensitive. This VC is signed with the issuers BBS  *public key*. Note that the *issuer* may want to require a subset of the VC information is "required to be revealed" or must be revealed in "chunks" so that information cannot be misrepresented in some way.
 2. The *holder* wants to selectively disclose a subset of the VC from above to a *verifier*. It does this by creating a *verifiable presentation* (VP) containing the appropriate subset of the VC and adds a "verifiable credential data integrity proof" to the VP based on a **BBS proof** which the *holder* derives from the issued VC, the *BBS signature* and issuer's *public key*.
 3. The *verifier* receives the *verifiable presentation* (VP) from the holder. They can verify that the subset of information contained in the VP has not been modified by validating the *BBS proof* contained in the VP against the *issuer*'s *public key*.
 
-The values contained in *BBS proofs* contained in VPs are unlinkable. However the other information contained in a VP would by its nature reveal something about the *holder* and could introduce *linkable* information. In addition, work is underway to minimize information leakage during processing steps.
+The values (cryptographic byte array) contained in the *BBS proofs* contained in VPs are unlinkable. However the other information contained in a VP would by its nature reveal something about the *holder* and could introduce *linkable* information. In addition, work is underway to minimize information leakage associated with JSON-LD representations of credentials.
 
 We follow the general outline from the VC Data Model V2 on [zero knowledge proofs](https://www.w3.org/TR/vc-data-model-2.0/#zero-knowledge-proofs). Hence in verifiable credential terminology the VP containing selective disclosure information will have a `proof` field, and it will contain a VC that will also contain a `proof` field (subject to selective disclosure).
 
@@ -27,7 +27,7 @@ Key BBS signature suite procedures:
 
 1. `signature = Sign(Secret_Key, Public_key, header, messages)` where the `header` is "additional information" that is cryptographically protected by the `signature` along with the list of `messages`. The `header` must be revealed at all steps so care must be taken not to put inappropriate material in there. The bulk of the work here is in mapping between VC/VP and the `messages` via JSON-LD canonicalization techniques. I'm inclined to recommend that the only VC specific information in the `header` is "required reveal statements" from the *issuer*.
 2. `result = Verify(Public, signature, header, messages)` is used when the *holder* verifies the VC it receives from the *issuer*.
-3. `bbs_proof = ProofGen(Public_key, signature, header, ph, messages, disclosed_indexes)` is used when the *holder* want to prepare a VP which may selectively disclose only a subset of the original VC information. Note how this is thought of by BBS as a set of indexes for the messages to be disclosed. The `Public_key` here is of the original *issuer* and not the *holder*. `ph` = "presentation header" and is protected by the cryptographic information in the `bbs_proof`. My recommendation is use the `ph` field to protect the "VP proof options" that get attached to the VP. See code example.
+3. `bbs_proof = ProofGen(Public_key, signature, header, ph, messages, disclosed_indexes)` is used when the *holder* want to prepare a VP which may selectively disclose only a subset of the original VC information. Note how this is thought of by BBS as a set of indexes for the messages to be disclosed. The `Public_key` here is of the original *issuer* and not the *holder*. `ph` = "presentation header" and is protected by the cryptographic information in the `bbs_proof`. My recommendation is use the `ph` field to protect the "VP proof options" that get attached to the VP. See code.
 4. `result = ProofVerify(Public_key, bbs_proof, header, ph, disclosed_messages, disclosed_indexes)` is used by the *verifier* to validate the "disclosed messages", i.e. the VP, against the original issuers public key.
 
 ## Processing Code Examples
@@ -61,14 +61,14 @@ Key BBS signature suite procedures:
 
 ## Multikey Verification Method
 
-The CCG spec is out of date the [BBS draft only uses a public key in the G2 group](https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-subgroup-selection). In the [multiformats table](https://ipfs.io/ipfs/QmXec1jjwzxWJoNbxQF5KffL8q6hFXm9QwUGaa3wKGk6dT/#title=Multicodecs&src=https://raw.githubusercontent.com/multiformats/multicodec/master/table.csv)
+The CCG spec is out of date in that the [BBS draft only uses a public key in the G2 group](https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-subgroup-selection). In the [multiformats table](https://ipfs.io/ipfs/QmXec1jjwzxWJoNbxQF5KffL8q6hFXm9QwUGaa3wKGk6dT/#title=Multicodecs&src=https://raw.githubusercontent.com/multiformats/multicodec/master/table.csv)
 
 ```text
 name                    tag     code    status       description
 bls12_381-g2-pub	    key     0xeb	draft	     BLS12-381 public key in the G2 field
 ```
 
-Note that the [did:key draft](https://w3c-ccg.github.io/did-method-key/#format) uses Base58-btc. So we will too. The [did:key BLS12381](https://w3c-ccg.github.io/did-method-key/#bls-12381) appears to be for the G2 public key since they get the same prefix that I do in [BBSMultiKey.js](BBSMultiKey.js).
+Note that the [did:key draft](https://w3c-ccg.github.io/did-method-key/#format) uses Base58-btc. So we will too. The [did:key BLS12381](https://w3c-ccg.github.io/did-method-key/#bls-12381) appears to be for the G2 public key since they get the same prefix that I do in [BBSMultiKey.js](BBSMultiKey.js). Hence we can use this nice, documented multikey representation for BBS public key.
 
 ## VC Data Integrity Proof Options/Configuration
 
@@ -96,17 +96,28 @@ Concerning the CCG draft says:
 
 Note that they also say:
 
-> The indices corresponding to the statements for the verificationMethod and proofPurpose as apart of the data integrity proof MUST always be present.
+> The indices corresponding to the statements for the `verificationMethod` and `proofPurpose` as apart of the data integrity proof MUST always be present.
 
-Hmm in all previous cases the VC *proof config/options* has been hashed separate from the other VC content then the combined hash has been signed. Also what is the relationship between the VC and the VP proofs? In the VC Data Model V2 they have a section on [ZKPs](https://www.w3.org/TR/vc-data-model-2.0/#zero-knowledge-proofs) and show including some of the original proof with the VC in the presentation. Hence it seems like we should break up the *proof config/options* into separate quads too.
+**Issue**: Need to make it easy for issuer to specify the `requiredRevealStatements`. Can we use the "Framing" procedure, see [FrameCheck.js](FrameCheck.js) to get the indices the issuer wants to require to be revealed? Demonstrated this in the signing code. Should more constraints be put on this field? Sorted, no out of bound indices?
 
-**Issue**: Need to make it easy for issuer to specify the `requiredRevealStatements`. Can we use the "Framing" procedure, see [FrameCheck.js](FrameCheck.js) to get the indices the issuer wants to require to be revealed? Trying this... Should more constraints be put on this field? Sorted, no out of bound indices?
+**Simplification**: In the verifiable presentation (VP) we include the VC with part of its proof subject to selective disclosure. Could we handle the VC with included proof options as a single entity for producing quads to feed to BBS rather than having separate unsigned document and "proof options"? This could simplify processing, i.e., finding selective disclosure indexes and reassembly of selectively disclosed VC (from VC and options quads).
 
-**Simplification**: In the verifiable presentation (VP) we include the VC with part of its proof subject to selective disclosure. Could we handle the VC with included proof options as a single entity for producing quads to feed to BBS rather than having separate unsigned document and "proof options"? This would simplify processing, i.e., finding selective disclosure indexes and reassembly of selectively disclosed VC (from VC and options quads).
-
-**Extension**: The specification has the concept of "required revealed statements". For a complicated VC it seems like statements could be "misrepresented", i.e., by taking them out of context (in a general sense not the "@context" of JSON-LD). Might we want to indicate that certain statements (quads) must be either not disclosed or disclosed only along with other statements. This could just be some simple relations amongst statement indexes and could be quite compact.
+**Extension**: The specification has the concept of "required revealed statements". For a complicated VC it seems like statements could be "misrepresented", i.e., by taking them out of context (in a general sense not the "@context" of JSON-LD). Might we want to indicate that certain statements (quads) must be either not disclosed or disclosed only along with other statements. This could just be some simple relations amongst statement indexes and could be quite compact, e.g., lists of lists.
 
 ## Signing Algorithm
+
+### Revised Signing Algorithm
+
+Features: no "double" hashing of messages;
+
+1. Unsigned document ==> canonize to quads ==> separate to list ==> UTF-8 encode to bytes ==> array of document byte messages. These will be the messages given to BBS and processed by [map message to scalar as hash](https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#section-4.3.1).
+2. Proof options ==> canonize ==> separate to list ==> UTF-8 encode to bytes ==> array of option byte messages. **Note**: proof options cannot contain `proofValue` or `requiredRevealStatements` since they haven't been computed yet.
+3. Concatenate option list with document list to get the list of BBS messages
+4. Furnish sufficient info to *issuer* to enable them to set the `requiredRevealStatements`. Tried using a JSON-LD framing procedure for this. Do this across both document and options.
+5. We protect the `requireRevealStatements` via the BBS `header`. We currently create a small JSON-LD document with just this information, canonize, convert to byte array and use this as the BBS `header`.
+6. Run BBS's "message to scalar" function on the byte messages from step 3.
+7. BBS preliminaries: make sure there are enough generators for the number of "messages".
+8. BBS sign
 
 ### Messages
 
@@ -143,18 +154,6 @@ These options need to be canonized and protected by the signature.
 
 Note that in Mattr's implementation they [concatenate the lists of statements from the proof options with the document statements](https://github.com/mattrglobal/jsonld-signatures-bbs/blob/cd936ea71a871633ddead4f91a0e2de1c0ed82cc/src/BbsBlsSignature2020.ts#L262-L276) and use that as the *messages* to BBS.
 
-### Revised Signing Algorithm
-
-Features: no "double" hashing of messages;
-
-1. Unsigned document ==> canonize to quads ==> separate to list ==> UTF-8 encode to bytes ==> array of document byte messages. These will be the messages given to BBS and processed by [map message to scalar as hash](https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#section-4.3.1).
-2. Proof options ==> canonize ==> separate to list ==> UTF-8 encode to bytes ==> array of option byte messages. **Note**: proof options cannot contain `proofValue` or `requiredRevealStatements` since they haven't been computed yet. We could protect the `requireRevealStatements` via the BBS `header`. Currently calculating but not protecting yet.
-3. Concatenate option list with document list to get the list of BBS messages
-4. Furnish sufficient info to *issuer* to enable them to set the `requiredRevealStatements`. Tried using a JSON-LD framing procedure for this. Do this across both document and options.
-5. Run BBS's "message to scalar" function on the byte messages from step 3.
-6. BBS preliminaries: make sure there are enough generators for the number of "messages".
-7. BBS sign
-
 ## Verification Algorithm
 
 This was rather straight forward based on the above signing:
@@ -184,10 +183,11 @@ Such usage seems to call for the concept of a [verifiable presentation](https://
 6. Run a JSON-LD framing based procedure to determine quads to be selectively disclosed for the *unsigned* document.
 7. Run a JSON-LD framing based procedure to determine quads to be selectively disclosed for the *VCOptions*.
 8. Obtain the indexes of the quads in the *allQuads* array for the selective disclosure quads in the previous two steps. These are the *selectiveDisclosure* indexes. Take a set union of these indexes with the `requiredRevealStatements` (these are indexes too). Save these to the `disclosedIndexes`.
-9. Create an "proof options" for the VP. *vpOptions*. Add the `disclosedIndexes` to it. Canonize, and convert to bytes base on UTF-8 encoding. This will be the *ph* (presentation header).
-10. Compute the BBS proof = ProofGen(PK, signature, header, ph, messages, disclosed_indexes). Use base58btc encoding and add this information to the *vpOptions* `proofValue` field.
-11. Created a new VC based on relevant quads according to `disclosedIndexes` and the *allQuads*; Create a new "proof" field for this VC based on the corresponding `disclosedIndexes` and *allQuads*. 
-12. Assemble the VP from the new VC and *vpOptions* field.
+9. Recreate the original BBS `header` from the `requiredRevealStatements` like in the signature procedure.
+10. Create an "proof options" for the VP. *vpOptions*. Add the `disclosedIndexes` and `requiredRevealStatements` to it. Canonize, and convert to bytes base on UTF-8 encoding. This will be the *ph* (presentation header).
+11. Compute the BBS proof = ProofGen(PK, signature, header, ph, messages, disclosed_indexes). Use base58btc encoding and add this information to the *vpOptions* `proofValue` field.
+12. Created a new VC based on relevant quads according to `disclosedIndexes` and the *allQuads*; Create a new "proof" field for this VC based on the corresponding `disclosedIndexes` and *allQuads*. 
+13. Assemble the VP from the new VC and *vpOptions* field.
 
 **Questions/Issue**: Do we need to use JSON-LD framing to help us select "disclosed indexes" or "required revealed indexes". If we just select from the quads can we break the reconstructed VC? Can we use JSON-LD framing options or mechanisms to better reconstruct the selectively disclosed VC. In my simple processing I have a "@graph" array rather than nice containment of the `credentialSubject` directly in the `verifiableCredential` within the `verifiablePresentation`. See [presentation.json](exampleIO/presentation.json).
 
@@ -211,7 +211,6 @@ Definitions (my emphasis):
     1. Find the numerical index the statement occupies in the set input proof document statements.
     2. Insert this numerical index into the revealed indicies array
 7. Returned the revealed indices array, total statements and input proof document statements.
-
 
 # JSON-LD and Selective Disclosure and Linkability
 

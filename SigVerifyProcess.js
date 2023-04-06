@@ -7,10 +7,10 @@
 /*global console, TextEncoder, URL*/
 import {messages_to_scalars, prepareGenerators, verify}
   from '@grottonetworking/bbs-signatures';
-import {readFile, writeFile} from 'fs/promises';
 import {base58btc} from 'multiformats/bases/base58';
 import jsonld from 'jsonld';
 import {localLoader} from './documentLoader.js';
+import {readFile} from 'fs/promises';
 
 jsonld.documentLoader = localLoader; // Local loader for JSON-LD
 const te = new TextEncoder(); // For UTF-8 to byte conversion

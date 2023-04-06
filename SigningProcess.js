@@ -162,8 +162,6 @@ async function getIndices(document, reqDocDiscloseFrame, proofOptions,
   const frameOptionQArray = canonOptionFramed.split('\n').filter(
     item => item.length > 0);
   const allRequired = frameOptionQArray.concat(frameDocQArray);
-  // console.log('All required quads:');
-  // console.log(allRequired.join('\n'));
 
   // Figure out the required disclosure indices as needed for VC proof config
   const reqDisclose = [];
