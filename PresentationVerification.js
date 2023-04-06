@@ -42,7 +42,8 @@ const proofQArray = canonOptions.split('\n').filter(item => item.length > 0);
 const allQArray = proofQArray.concat(docQArray);
 writeFile('./output/presentVerifyAllQuads.json',
   allQArray.join('\n'));
-console.log(`Options quad length ${proofQArray.length}, Unsigned quad length ${docQArray.length}`);
+console.log(`Options quad length ${proofQArray.length},`,
+  `Unsigned quad length ${docQArray.length}`);
 
 // Recreate presentation proof options
 const proofValue = base58btc.decode(presentOptions.proofValue);
@@ -67,7 +68,6 @@ const headerDoc = { // This would be standardized...
 const headerCanon = await jsonld.canonize(headerDoc);
 const header = te.encode(headerCanon);
 
-
 // convert combined quads to bytes and map to scalars
 const docQByteArray = allQArray.map(q => te.encode(q));
 const messageScalars = await messages_to_scalars(docQByteArray);
@@ -79,7 +79,7 @@ publicKey = publicKey.slice(2);
 const U = numUndisclosed(proofValue); // Number Undisclosed
 const R = messageScalars.length; // Number Disclosed
 console.log(`Number undisclosed: ${U}, number revealed: ${R}`);
-const gens = await prepareGenerators(U+R);
+const gens = await prepareGenerators(U + R);
 
 const proofValid = await proofVerify(publicKey, proofValue, header, ph,
   messageScalars, disclosedIndexes, gens);

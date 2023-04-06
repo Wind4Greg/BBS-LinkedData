@@ -3,6 +3,7 @@
     Note: Not currently doing blank node processing stuff.
 */
 /*global console, TextEncoder, URL*/
+/*eslint max-len: ["error", { "ignoreStrings": true, "ignoreComments": true }]*/
 import {hexToBytes, messages_to_scalars, prepareGenerators, publicFromPrivate,
   sign} from '@grottonetworking/bbs-signatures';
 import {readFile, writeFile} from 'fs/promises';

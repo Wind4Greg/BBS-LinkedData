@@ -3,10 +3,8 @@
     Note: Not currently doing blank node processing stuff.
 */
 /*global console, TextEncoder, URL*/
-import {
-  hexToBytes, messages_to_scalars, prepareGenerators, proofGen,
-  publicFromPrivate
-} from '@grottonetworking/bbs-signatures';
+import {messages_to_scalars, prepareGenerators, proofGen}
+  from '@grottonetworking/bbs-signatures';
 import {readFile, writeFile} from 'fs/promises';
 import {base58btc} from 'multiformats/bases/base58';
 import jsonld from 'jsonld';
@@ -46,7 +44,8 @@ const proofQArray = canonOptions.split('\n').filter(item => item.length > 0);
 const allQArray = proofQArray.concat(docQArray);
 writeFile('./output/presentAllQuads.txt',
   allQArray.join('\n'));
-console.log(`Options quad length ${proofQArray.length}, Unsigned quad length ${docQArray.length}`);
+console.log(`Options quad length ${proofQArray.length},`,
+  `Unsigned quad length ${docQArray.length}`);
 
 // Let's determine selective disclosure indices via the frame method
 // These would be specified by holder.
